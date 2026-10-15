@@ -1,0 +1,1036 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BloodNet — Decentralized Blood Bank & Emergency Coordination</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:       #f7f8fc;
+  --surface:  #ffffff;
+  --card:     #ffffff;
+  --border:   #e8ecf2;
+  --border2:  #d1d9e6;
+  --blood:    #c8102e;
+  --blood2:   #e63550;
+  --critical: #ff3b30;
+  --warn:     #ff9500;
+  --ok:       #34c759;
+  --blue:     #007aff;
+  --purple:   #7c3aed;
+  --text:     #0f1923;
+  --muted:    #6b7280;
+  --dim:      #9ca3af;
+  --soft:     #f3f4f6;
+  --r:        12px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+
+/* ─── SIDEBAR ─── */
+.sidebar{
+  position:fixed;left:0;top:0;bottom:0;width:256px;
+  background:var(--surface);border-right:1px solid var(--border);
+  display:flex;flex-direction:column;z-index:100;
+  box-shadow:2px 0 16px rgba(0,0,0,.04);
+}
+.logo{padding:22px 20px 18px;border-bottom:1px solid var(--border)}
+.logo-row{display:flex;align-items:center;gap:10px}
+.logo-icon{
+  width:40px;height:40px;border-radius:10px;
+  background:linear-gradient(135deg,var(--blood),var(--blood2));
+  display:flex;align-items:center;justify-content:center;
+  font-size:18px;box-shadow:0 4px 12px rgba(200,16,46,.3);
+}
+.logo-name{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:18px;font-weight:600;color:var(--blood);letter-spacing:.5px;
+}
+.logo-sub{font-size:10px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-top:2px}
+
+.alert-strip{
+  margin:12px 16px 0;padding:8px 12px;
+  background:#fff0f2;border:1px solid #ffccd4;border-radius:8px;
+  display:flex;align-items:center;gap:8px;
+  font-size:11px;font-weight:600;color:var(--blood);letter-spacing:.3px;
+}
+.pulse-dot{
+  width:7px;height:7px;border-radius:50%;background:var(--critical);flex-shrink:0;
+  animation:blink 1.4s infinite;
+}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+
+.nav{flex:1;padding:14px 12px;overflow-y:auto}
+.nav-section{margin-bottom:16px}
+.nav-label{font-size:10px;font-weight:600;color:var(--dim);letter-spacing:1.5px;
+  text-transform:uppercase;padding:0 10px 7px}
+.nav-item{
+  display:flex;align-items:center;gap:10px;padding:9px 10px;
+  border-radius:9px;cursor:pointer;transition:all .15s;
+  font-size:13.5px;font-weight:500;color:var(--muted);
+  margin-bottom:1px;border:1px solid transparent;
+}
+.nav-item:hover{background:var(--soft);color:var(--text)}
+.nav-item.active{background:#fff0f2;color:var(--blood);border-color:#ffccd4;font-weight:600}
+.nav-chip{
+  margin-left:auto;font-size:10px;font-weight:700;padding:2px 7px;border-radius:8px;
+}
+.chip-red{background:#ffccd4;color:var(--blood)}
+.chip-warn{background:#fff3cd;color:#b45309}
+.chip-ok{background:#d1fae5;color:#065f46}
+.chip-blue{background:#dbeafe;color:#1d4ed8}
+
+.sidebar-footer{padding:14px;border-top:1px solid var(--border)}
+.user-card{
+  display:flex;align-items:center;gap:10px;padding:10px;
+  background:var(--soft);border-radius:10px;
+}
+.av{
+  width:34px;height:34px;border-radius:50%;
+  background:linear-gradient(135deg,var(--blood),var(--blood2));
+  display:flex;align-items:center;justify-content:center;
+  font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:white;
+}
+.u-name{font-size:13px;font-weight:600}
+.u-role{font-size:11px;color:var(--muted)}
+
+/* ─── MAIN ─── */
+.main{margin-left:256px;min-height:100vh}
+.topbar{
+  background:var(--surface);border-bottom:1px solid var(--border);
+  padding:14px 28px;display:flex;align-items:center;justify-content:space-between;
+  position:sticky;top:0;z-index:50;box-shadow:0 1px 4px rgba(0,0,0,.04);
+}
+.page-title{font-size:20px;font-weight:700;letter-spacing:-.3px}
+.page-sub{font-size:12px;color:var(--muted);margin-top:1px}
+.topbar-r{display:flex;align-items:center;gap:10px}
+.btn{
+  padding:8px 16px;border-radius:8px;border:none;cursor:pointer;
+  font-family:'IBM Plex Sans',sans-serif;font-size:13px;font-weight:600;
+  transition:all .15s;display:inline-flex;align-items:center;gap:7px;
+}
+.btn-blood{background:var(--blood);color:white}
+.btn-blood:hover{background:#a80d27;transform:translateY(-1px);box-shadow:0 4px 12px rgba(200,16,46,.3)}
+.btn-ghost{background:white;color:var(--text);border:1px solid var(--border)}
+.btn-ghost:hover{background:var(--soft)}
+.btn-warn{background:var(--warn);color:white}
+.btn-blue{background:var(--blue);color:white}
+
+/* ─── CONTENT ─── */
+.content{padding:24px 28px}
+
+/* ─── STAT CARDS ─── */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:15px;margin-bottom:22px}
+.sc{
+  background:var(--card);border:1px solid var(--border);border-radius:var(--r);
+  padding:20px;position:relative;overflow:hidden;transition:all .2s;
+  box-shadow:0 1px 4px rgba(0,0,0,.04);
+}
+.sc:hover{transform:translateY(-1px);box-shadow:0 4px 16px rgba(0,0,0,.08)}
+.sc-label{font-size:11px;color:var(--muted);font-weight:600;letter-spacing:.8px;text-transform:uppercase;margin-bottom:10px}
+.sc-value{font-family:'IBM Plex Mono',monospace;font-size:34px;font-weight:600;line-height:1;margin-bottom:4px}
+.sc-sub{font-size:12px;color:var(--muted)}
+.sc-icon{position:absolute;top:16px;right:16px;font-size:22px;opacity:.25}
+.sc.red .sc-value{color:var(--blood)}
+.sc.warn .sc-value{color:var(--warn)}
+.sc.ok .sc-value{color:var(--ok)}
+.sc.blue .sc-value{color:var(--blue)}
+.sc.red{border-left:3px solid var(--blood)}
+.sc.warn{border-left:3px solid var(--warn)}
+.sc.ok{border-left:3px solid var(--ok)}
+.sc.blue{border-left:3px solid var(--blue)}
+
+/* ─── GRID ─── */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+.g31{display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-bottom:16px}
+.g13{display:grid;grid-template-columns:1fr 2fr;gap:16px;margin-bottom:16px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:16px}
+
+/* ─── CARD ─── */
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);
+  overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.04)}
+.ch{padding:15px 20px 12px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between}
+.ct{font-size:14px;font-weight:600;letter-spacing:-.2px}
+.cb{padding:0 20px 16px}
+
+/* ─── BADGES ─── */
+.tag{display:inline-block;padding:3px 9px;border-radius:6px;font-size:11px;font-weight:600;letter-spacing:.2px}
+.tag-blood{background:#ffccd4;color:var(--blood)}
+.tag-critical{background:#ffe4e4;color:var(--critical);border:1px solid #ffb3b3;animation:critblink 2s infinite}
+@keyframes critblink{0%,100%{border-color:#ffb3b3}50%{border-color:var(--critical)}}
+.tag-warn{background:#fff3cd;color:#b45309}
+.tag-ok{background:#d1fae5;color:#065f46}
+.tag-blue{background:#dbeafe;color:#1d4ed8}
+.tag-purple{background:#ede9fe;color:#5b21b6}
+.tag-dim{background:var(--soft);color:var(--muted)}
+.tag-urgent{background:#fff3cd;color:#92400e;border:1px solid #fde68a}
+
+/* ─── TABLE ─── */
+.tw{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px}
+thead th{
+  padding:10px 14px;text-align:left;font-size:11px;font-weight:700;
+  color:var(--muted);letter-spacing:.8px;text-transform:uppercase;
+  border-bottom:2px solid var(--border);background:#fafbfc;
+}
+tbody tr{border-bottom:1px solid var(--border);transition:background .1s}
+tbody tr:hover{background:#fafbfc}
+tbody td{padding:11px 14px;vertical-align:middle}
+.bg-pill{
+  display:inline-block;width:36px;text-align:center;
+  padding:3px 0;border-radius:6px;font-family:'IBM Plex Mono',monospace;
+  font-size:12px;font-weight:600;
+}
+.O_pos{background:#fde8eb;color:var(--blood)}
+.O_neg{background:#c8102e;color:white}
+.A_pos{background:#dbeafe;color:#1d4ed8}
+.A_neg{background:#1d4ed8;color:white}
+.B_pos{background:#d1fae5;color:#065f46}
+.B_neg{background:#065f46;color:white}
+.AB_pos{background:#ede9fe;color:#5b21b6}
+.AB_neg{background:#5b21b6;color:white}
+
+/* ─── BLOOD GROUP GRID ─── */
+.bg-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:16px 20px}
+.bg-cell{
+  background:var(--soft);border:1px solid var(--border);border-radius:9px;
+  padding:12px;text-align:center;transition:all .2s;
+}
+.bg-cell:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,.08)}
+.bg-cell .group{font-family:'IBM Plex Mono',monospace;font-size:18px;font-weight:600;color:var(--blood);margin-bottom:6px}
+.bg-cell .units{font-family:'IBM Plex Mono',monospace;font-size:22px;font-weight:600;margin-bottom:2px}
+.bg-cell.critical-stock{background:#fff0f2;border-color:#ffccd4}
+.bg-cell.critical-stock .units{color:var(--critical)}
+.bg-cell .unit-label{font-size:10px;color:var(--muted)}
+
+/* ─── EMERGENCY CARD ─── */
+.emrg-card{
+  border-radius:var(--r);overflow:hidden;
+  border:1px solid var(--border);
+  box-shadow:0 1px 4px rgba(0,0,0,.04);
+  margin-bottom:12px;
+}
+.emrg-card.critical{border-left:4px solid var(--critical)}
+.emrg-card.high{border-left:4px solid var(--warn)}
+.emrg-card.medium{border-left:4px solid var(--blue)}
+.emrg-hd{
+  padding:13px 16px;background:white;
+  display:flex;align-items:flex-start;justify-content:space-between;gap:12px;
+}
+.emrg-title{font-size:13px;font-weight:700;margin-bottom:4px}
+.emrg-meta{font-size:11px;color:var(--muted)}
+.emrg-body{padding:12px 16px;background:#fafbfc;border-top:1px solid var(--border);
+  display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.emrg-stat{text-align:center}
+.emrg-stat .val{font-family:'IBM Plex Mono',monospace;font-size:18px;font-weight:600;color:var(--blood)}
+.emrg-stat .lbl{font-size:10px;color:var(--muted);letter-spacing:.5px;text-transform:uppercase}
+
+/* ─── PROGRESS ─── */
+.prog-wrap{margin-bottom:13px}
+.prog-hd{display:flex;justify-content:space-between;margin-bottom:5px;font-size:12px}
+.prog-bar{height:6px;background:var(--soft);border-radius:3px;overflow:hidden}
+.prog-fill{height:100%;border-radius:3px;transition:width 1s}
+
+/* ─── SCHEMA BOXES ─── */
+.schema-g{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;padding:16px 20px}
+.sbox{
+  border:1px solid var(--border);border-radius:9px;padding:13px;
+  background:var(--soft);transition:all .2s;border-top:3px solid;
+}
+.sbox:hover{background:white;box-shadow:0 4px 12px rgba(0,0,0,.08);transform:translateY(-1px)}
+.sbox.red{border-top-color:var(--blood)}
+.sbox.blue{border-top-color:var(--blue)}
+.sbox.ok{border-top-color:var(--ok)}
+.sbox.warn{border-top-color:var(--warn)}
+.sbox.purple{border-top-color:var(--purple)}
+.sbox-title{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;
+  margin-bottom:8px;letter-spacing:.5px}
+.sbox.red .sbox-title{color:var(--blood)}
+.sbox.blue .sbox-title{color:var(--blue)}
+.sbox.ok .sbox-title{color:var(--ok)}
+.sbox.warn .sbox-title{color:var(--warn)}
+.sbox.purple .sbox-title{color:var(--purple)}
+.sbox-fields{font-size:11px;color:var(--muted);line-height:1.9}
+
+/* ─── SQL CODE ─── */
+pre{
+  background:#0f1923;padding:16px;border-radius:9px;
+  font-family:'IBM Plex Mono',monospace;font-size:12px;
+  color:#a8c4d0;overflow-x:auto;line-height:1.75;
+  border:1px solid #1e2e3a;
+}
+.kw{color:#ff7c7c}
+.fn{color:#79c0ff}
+.cm{color:#4a6070}
+.str{color:#a5d6a7}
+.num{color:#ffd700}
+
+/* ─── TIMELINE ─── */
+.tl{padding:16px 20px}
+.tl-item{display:flex;gap:12px;margin-bottom:16px;align-items:flex-start}
+.tl-dot{
+  width:32px;height:32px;border-radius:50%;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;font-size:13px;
+  border:2px solid var(--border);background:white;
+}
+.tl-dot.red{border-color:var(--blood);color:var(--blood);background:#fff0f2}
+.tl-dot.ok{border-color:var(--ok);color:var(--ok);background:#f0fdf4}
+.tl-dot.warn{border-color:var(--warn);color:var(--warn);background:#fffbeb}
+.tl-dot.blue{border-color:var(--blue);color:var(--blue);background:#eff6ff}
+.tl-title{font-size:13px;font-weight:600}
+.tl-sub{font-size:11px;color:var(--muted);margin-top:2px}
+.tl-time{font-size:10px;color:var(--dim);margin-top:3px;font-family:'IBM Plex Mono',monospace}
+
+/* ─── PAGES ─── */
+.page{display:none}
+.page.active{display:block}
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+.page.active > .content > *{animation:fadeUp .3s ease both}
+.page.active > .content > *:nth-child(2){animation-delay:.05s}
+.page.active > .content > *:nth-child(3){animation-delay:.1s}
+.page.active > .content > *:nth-child(4){animation-delay:.15s}
+
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="logo">
+    <div class="logo-row">
+      <div class="logo-icon">🩸</div>
+      <div>
+        <div class="logo-name">BLOODNET</div>
+        <div class="logo-sub">DBMS Project v1.0</div>
+      </div>
+    </div>
+  </div>
+  <div class="alert-strip"><div class="pulse-dot"></div>3 Active Emergencies — 2 Critical</div>
+  <nav class="nav">
+    <div class="nav-section">
+      <div class="nav-label">Overview</div>
+      <div class="nav-item active" onclick="nav(this,'dashboard')">
+        <span>📊</span> Dashboard
+      </div>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Emergency</div>
+      <div class="nav-item" onclick="nav(this,'emergency')">
+        <span>🚨</span> Emergency Centre
+        <span class="nav-chip chip-red">3 Active</span>
+      </div>
+      <div class="nav-item" onclick="nav(this,'requests')">
+        <span>📋</span> Blood Requests
+        <span class="nav-chip chip-warn">3 Open</span>
+      </div>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Blood Bank</div>
+      <div class="nav-item" onclick="nav(this,'inventory')">
+        <span>🧪</span> Network Inventory
+      </div>
+      <div class="nav-item" onclick="nav(this,'donors')">
+        <span>🫀</span> Donors
+        <span class="nav-chip chip-ok">4 Eligible</span>
+      </div>
+      <div class="nav-item" onclick="nav(this,'donations')">
+        <span>💉</span> Donations
+      </div>
+      <div class="nav-item" onclick="nav(this,'transfers')">
+        <span>🔄</span> Transfers
+      </div>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Database</div>
+      <div class="nav-item" onclick="nav(this,'schema')">
+        <span>🗃️</span> ER Schema
+      </div>
+      <div class="nav-item" onclick="nav(this,'queries')">
+        <span>⌨️</span> SQL Queries
+        <span class="nav-chip chip-blue">Key</span>
+      </div>
+    </div>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="user-card">
+      <div class="av">RV</div>
+      <div>
+        <div class="u-name">Rahul Verma</div>
+        <div class="u-role">Emergency Coordinator</div>
+      </div>
+    </div>
+  </div>
+</aside>
+
+<main class="main">
+
+<!-- ══════════════════ DASHBOARD ══════════════════ -->
+<div id="dashboard" class="page active">
+  <div class="topbar">
+    <div>
+      <div class="page-title">Network Dashboard</div>
+      <div class="page-sub">Decentralized Blood Bank & Emergency Coordination System</div>
+    </div>
+    <div class="topbar-r">
+      <button class="btn btn-ghost">📤 Export Report</button>
+      <button class="btn btn-blood">🚨 Raise Emergency</button>
+    </div>
+  </div>
+  <div class="content">
+
+    <!-- Stats -->
+    <div class="stats">
+      <div class="sc red">
+        <div class="sc-icon">🚨</div>
+        <div class="sc-label">Active Emergencies</div>
+        <div class="sc-value">3</div>
+        <div class="sc-sub">2 Critical · 1 High severity</div>
+      </div>
+      <div class="sc warn">
+        <div class="sc-icon">📋</div>
+        <div class="sc-label">Open Requests</div>
+        <div class="sc-value">3</div>
+        <div class="sc-sub">2 Critical · 1 Urgent</div>
+      </div>
+      <div class="sc ok">
+        <div class="sc-icon">🧪</div>
+        <div class="sc-label">Network Blood Units</div>
+        <div class="sc-value">347</div>
+        <div class="sc-sub">Across 5 blood banks</div>
+      </div>
+      <div class="sc blue">
+        <div class="sc-icon">🫀</div>
+        <div class="sc-label">Eligible Donors</div>
+        <div class="sc-value">4</div>
+        <div class="sc-sub">5 donors registered</div>
+      </div>
+    </div>
+
+    <!-- Inventory by blood group (network totals) -->
+    <div class="card" style="margin-bottom:16px">
+      <div class="ch">
+        <span class="ct">🩸 Network Blood Inventory — All Groups</span>
+        <span class="tag tag-dim" style="font-family:'IBM Plex Mono',monospace;font-size:11px">Total: 347 units across 5 banks</span>
+      </div>
+      <div class="bg-grid">
+        <div class="bg-cell"><div class="group">O+</div><div class="units" style="color:var(--blood)">164</div><div class="unit-label">units available</div></div>
+        <div class="bg-cell critical-stock"><div class="group">O−</div><div class="units">34</div><div class="unit-label">⚠ near critical</div></div>
+        <div class="bg-cell"><div class="group">A+</div><div class="units" style="color:var(--ok)">103</div><div class="unit-label">units available</div></div>
+        <div class="bg-cell critical-stock"><div class="group">A−</div><div class="units">13</div><div class="unit-label">⚠ low stock</div></div>
+        <div class="bg-cell"><div class="group">B+</div><div class="units" style="color:var(--ok)">62</div><div class="unit-label">units available</div></div>
+        <div class="bg-cell critical-stock"><div class="group">B−</div><div class="units">7</div><div class="unit-label">⚠ critical</div></div>
+        <div class="bg-cell"><div class="group">AB+</div><div class="units" style="color:var(--blue)">18</div><div class="unit-label">units available</div></div>
+        <div class="bg-cell critical-stock"><div class="group">AB−</div><div class="units">5</div><div class="unit-label">⚠ critical</div></div>
+      </div>
+    </div>
+
+    <div class="g31">
+      <!-- Critical requests -->
+      <div class="card">
+        <div class="ch"><span class="ct">⚡ Priority Blood Requests</span><span class="tag tag-critical">3 Open</span></div>
+        <div class="tw">
+          <table>
+            <thead><tr><th>ID</th><th>Hospital</th><th>Patient</th><th>Group</th><th>Needed</th><th>Urgency</th><th>Time Left</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr>
+                <td><span style="font-family:'IBM Plex Mono',monospace;font-size:11px">#R003</span></td>
+                <td>All India Medical, Delhi</td>
+                <td>Unknown Patient</td>
+                <td><span class="bg-pill O_neg">O−</span></td>
+                <td>6 units</td>
+                <td><span class="tag tag-critical">🔴 Critical</span></td>
+                <td style="color:var(--critical);font-weight:700;font-family:'IBM Plex Mono',monospace">~1h</td>
+                <td><span class="tag tag-blood">Open</span></td>
+              </tr>
+              <tr>
+                <td><span style="font-family:'IBM Plex Mono',monospace;font-size:11px">#R001</span></td>
+                <td>Apollo Hospital, Delhi</td>
+                <td>Rajan Gupta, 45M</td>
+                <td><span class="bg-pill O_pos">O+</span></td>
+                <td>4 units (2 left)</td>
+                <td><span class="tag tag-critical">🔴 Critical</span></td>
+                <td style="color:var(--warn);font-weight:700;font-family:'IBM Plex Mono',monospace">~2h</td>
+                <td><span class="tag tag-warn">Partial</span></td>
+              </tr>
+              <tr>
+                <td><span style="font-family:'IBM Plex Mono',monospace;font-size:11px">#R002</span></td>
+                <td>Fortis Hospital, Mumbai</td>
+                <td>Meera Kulkarni, 28F</td>
+                <td><span class="bg-pill A_pos">A+</span></td>
+                <td>2 units</td>
+                <td><span class="tag tag-urgent">🟡 Urgent</span></td>
+                <td style="color:var(--muted);font-family:'IBM Plex Mono',monospace">~4h</td>
+                <td><span class="tag tag-blood">Open</span></td>
+              </tr>
+              <tr>
+                <td><span style="font-family:'IBM Plex Mono',monospace;font-size:11px">#R005</span></td>
+                <td>Govt. Hyderabad General</td>
+                <td>Fatima Sheikh, 35F</td>
+                <td><span class="bg-pill AB_pos">AB+</span></td>
+                <td>2 units (Platelets)</td>
+                <td><span class="tag tag-urgent">🟡 Urgent</span></td>
+                <td style="color:var(--muted);font-family:'IBM Plex Mono',monospace">~6h</td>
+                <td><span class="tag tag-blood">Open</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Bank status sidebar -->
+      <div class="card">
+        <div class="ch"><span class="ct">🏥 Blood Bank Network</span></div>
+        <div class="cb" style="padding-top:14px">
+          <div style="margin-bottom:10px;padding:10px;background:var(--soft);border-radius:8px;border-left:3px solid var(--ok)">
+            <div style="font-size:12px;font-weight:700">AIIMS, New Delhi</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:2px">132 units · 24h · <span style="color:var(--ok)">Online</span></div>
+          </div>
+          <div style="margin-bottom:10px;padding:10px;background:var(--soft);border-radius:8px;border-left:3px solid var(--ok)">
+            <div style="font-size:12px;font-weight:700">KEM Hospital, Mumbai</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:2px">124 units · 24h · <span style="color:var(--ok)">Online</span></div>
+          </div>
+          <div style="margin-bottom:10px;padding:10px;background:var(--soft);border-radius:8px;border-left:3px solid var(--ok)">
+            <div style="font-size:12px;font-weight:700">NIMHANS, Bengaluru</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:2px">58 units · 24h · <span style="color:var(--ok)">Online</span></div>
+          </div>
+          <div style="margin-bottom:10px;padding:10px;background:var(--soft);border-radius:8px;border-left:3px solid var(--ok)">
+            <div style="font-size:12px;font-weight:700">PGIMER, Chandigarh</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:2px">80 units · 24h · <span style="color:var(--ok)">Online</span></div>
+          </div>
+          <div style="padding:10px;background:var(--soft);border-radius:8px;border-left:3px solid var(--warn)">
+            <div style="font-size:12px;font-weight:700">Osmania, Hyderabad</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:2px">62 units · Not 24h · <span style="color:var(--warn)">Partial</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Activity -->
+    <div class="g2">
+      <div class="card">
+        <div class="ch"><span class="ct">📡 Recent Activity</span></div>
+        <div class="tl">
+          <div class="tl-item"><div class="tl-dot red">🚨</div><div><div class="tl-title">Emergency Coordinated — NH-8 Pile-up</div><div class="tl-sub">18 units dispatched · 3 banks responding</div><div class="tl-time">Today · 09:15</div></div></div>
+          <div class="tl-item"><div class="tl-dot ok">✓</div><div><div class="tl-title">Request Fulfilled — Suresh Babu (B+)</div><div class="tl-sub">3 units from NIMHANS Bengaluru</div><div class="tl-time">Today · 06:30</div></div></div>
+          <div class="tl-item"><div class="tl-dot blue">🔄</div><div><div class="tl-title">Blood Transfer — AIIMS → KEM Mumbai</div><div class="tl-sub">O− unit BU-20260301-000004 in transit</div><div class="tl-time">Today · 05:00</div></div></div>
+          <div class="tl-item"><div class="tl-dot ok">💉</div><div><div class="tl-title">Donation Registered — Arjun Sharma</div><div class="tl-sub">1 unit O+ · AIIMS Delhi</div><div class="tl-time">Jan 15, 2026</div></div></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="ch"><span class="ct">📈 Bank Stock Levels</span></div>
+        <div class="cb" style="padding-top:14px">
+          <div class="prog-wrap"><div class="prog-hd"><span>AIIMS Delhi</span><span>132/1000 units</span></div><div class="prog-bar"><div class="prog-fill" style="width:13.2%;background:var(--ok)"></div></div></div>
+          <div class="prog-wrap"><div class="prog-hd"><span>KEM Mumbai</span><span>124/800 units</span></div><div class="prog-bar"><div class="prog-fill" style="width:15.5%;background:var(--ok)"></div></div></div>
+          <div class="prog-wrap"><div class="prog-hd"><span>NIMHANS Bengaluru</span><span>58/600 units</span></div><div class="prog-bar"><div class="prog-fill" style="width:9.7%;background:var(--warn)"></div></div></div>
+          <div class="prog-wrap"><div class="prog-hd"><span>PGIMER Chandigarh</span><span>80/500 units</span></div><div class="prog-bar"><div class="prog-fill" style="width:16%;background:var(--ok)"></div></div></div>
+          <div class="prog-wrap"><div class="prog-hd"><span>Osmania Hyderabad</span><span>62/700 units</span></div><div class="prog-bar"><div class="prog-fill" style="width:8.9%;background:var(--warn)"></div></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════ EMERGENCY CENTRE ══════════════════ -->
+<div id="emergency" class="page">
+  <div class="topbar">
+    <div><div class="page-title">🚨 Emergency Coordination Centre</div><div class="page-sub">Mass casualty & disaster blood supply management</div></div>
+    <div class="topbar-r"><button class="btn btn-blood">＋ Report Emergency</button></div>
+  </div>
+  <div class="content">
+    <div class="stats">
+      <div class="sc red"><div class="sc-icon">🚨</div><div class="sc-label">Active</div><div class="sc-value">3</div><div class="sc-sub">2 Critical · 1 High</div></div>
+      <div class="sc ok"><div class="sc-icon">🏦</div><div class="sc-label">Banks Responding</div><div class="sc-value">5</div><div class="sc-sub">All nodes active</div></div>
+      <div class="sc warn"><div class="sc-icon">📦</div><div class="sc-label">Units Pledged</div><div class="sc-value">47</div><div class="sc-sub">Across 3 emergencies</div></div>
+      <div class="sc blue"><div class="sc-icon">🚚</div><div class="sc-label">Units Dispatched</div><div class="sc-value">28</div><div class="sc-sub">In transit / delivered</div></div>
+    </div>
+
+    <!-- Emergency Cards -->
+    <div class="emrg-card critical">
+      <div class="emrg-hd">
+        <div>
+          <div class="emrg-title">🔴 NH-8 Multi-Vehicle Pile-up — Gurugram</div>
+          <div class="emrg-meta">📍 Kherki Daula Toll, NH-8 &nbsp;·&nbsp; 🕐 Reported Today 08:45 &nbsp;·&nbsp; Coordinator: Rahul Verma</div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;flex-shrink:0">
+          <span class="tag tag-critical">CRITICAL</span>
+          <span class="tag tag-warn" style="background:#fff3cd;color:#92400e">Coordinating</span>
+        </div>
+      </div>
+      <div class="emrg-body">
+        <div class="emrg-stat"><div class="val">23</div><div class="lbl">Casualties</div></div>
+        <div style="width:1px;height:36px;background:var(--border)"></div>
+        <div class="emrg-stat"><div class="val">3</div><div class="lbl">Banks Active</div></div>
+        <div style="width:1px;height:36px;background:var(--border)"></div>
+        <div class="emrg-stat"><div class="val">20</div><div class="lbl">Units Pledged</div></div>
+        <div style="width:1px;height:36px;background:var(--border)"></div>
+        <div class="emrg-stat"><div class="val">18</div><div class="lbl">Dispatched</div></div>
+        <div style="width:1px;height:36px;background:var(--border)"></div>
+        <div style="flex:1;font-size:11px;color:var(--muted)"><strong style="color:var(--text)">Blood Needed:</strong> O+:10 · O−:6 · A+:4 · B+:3</div>
+      </div>
+    </div>
+
+    <div class="emrg-card high">
+      <div class="emrg-hd">
+        <div>
+          <div class="emrg-title">🟡 Yamuna Flood Relief — Blood Camp, Delhi</div>
+          <div class="emrg-meta">📍 Yamuna Ghat Relief Camp &nbsp;·&nbsp; Flood displacement · 500+ affected</div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;flex-shrink:0">
+          <span class="tag tag-warn">HIGH</span>
+          <span class="tag tag-blue">Active</span>
+        </div>
+      </div>
+      <div class="emrg-body">
+        <div class="emrg-stat"><div class="val">—</div><div class="lbl">Casualties</div></div>
+        <div style="width:1px;height:36px;background:var(--border)"></div>
+        <div class="emrg-stat"><div class="val">2</div><div class="lbl">Banks Pledged</div></div>
+        <div style="width:1px;height:36px;background:var(--border)"></div>
+        <div class="emrg-stat"><div class="val">25</div><div class="lbl">Units Pledged</div></div>
+        <div style="width:1px;height:36px;background:var(--border)"></div>
+        <div class="emrg-stat"><div class="val">0</div><div class="lbl">Dispatched</div></div>
+        <div style="width:1px;height:36px;background:var(--border)"></div>
+        <div style="flex:1;font-size:11px;color:var(--muted)"><strong style="color:var(--text)">Blood Needed:</strong> O+:20 · A+:10 · B+:8 · O−:5</div>
+      </div>
+    </div>
+
+    <div class="emrg-card critical">
+      <div class="emrg-hd">
+        <div>
+          <div class="emrg-title">🔴 Chemical Plant Explosion — Manesar, Haryana</div>
+          <div class="emrg-meta">📍 IMT Manesar · Burn victims · Industrial Accident</div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;flex-shrink:0">
+          <span class="tag tag-critical">CRITICAL</span>
+          <span class="tag tag-blue">Active</span>
+        </div>
+      </div>
+      <div class="emrg-body">
+        <div class="emrg-stat"><div class="val">11</div><div class="lbl">Casualties</div></div>
+        <div style="width:1px;height:36px;background:var(--border)"></div>
+        <div class="emrg-stat"><div class="val">2</div><div class="lbl">Banks Active</div></div>
+        <div style="width:1px;height:36px;background:var(--border)"></div>
+        <div class="emrg-stat"><div class="val">12</div><div class="lbl">Units Pledged</div></div>
+        <div style="width:1px;height:36px;background:var(--border)"></div>
+        <div class="emrg-stat"><div class="val">10</div><div class="lbl">Dispatched</div></div>
+        <div style="width:1px;height:36px;background:var(--border)"></div>
+        <div style="flex:1;font-size:11px;color:var(--muted)"><strong style="color:var(--text)">Blood Needed:</strong> AB+:4 · O+:8 · A+:5</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="ch"><span class="ct">SQL: Coordinate Emergency</span></div>
+      <div class="cb" style="padding-top:14px">
+        <pre>-- Assign coordinator + activate emergency response tracking
+SELECT coordinate_emergency(
+    2,   -- emergency_id
+    2    -- coordinator user_id (Rahul Verma)
+);
+
+-- View all active emergency responses
+SELECT eq.title, bb.bank_name, er.blood_group,
+       er.units_pledged, er.units_dispatched,
+       er.status, er.eta_minutes
+FROM emergency_responses er
+JOIN emergency_requests eq ON er.emergency_id = eq.emergency_id
+JOIN blood_banks        bb ON er.bank_id       = bb.bank_id
+WHERE eq.status IN ('Active','Coordinating')
+ORDER BY eq.severity DESC;</pre>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════ BLOOD REQUESTS ══════════════════ -->
+<div id="requests" class="page">
+  <div class="topbar">
+    <div><div class="page-title">Blood Requests</div><div class="page-sub">Hospital requests with urgency triage</div></div>
+    <div class="topbar-r"><button class="btn btn-blood">＋ New Request</button></div>
+  </div>
+  <div class="content">
+    <div class="card" style="margin-bottom:16px">
+      <div class="ch"><span class="ct">All Requests</span><span class="tag tag-blood">3 Open</span></div>
+      <div class="tw">
+        <table>
+          <thead><tr><th>#</th><th>Hospital</th><th>Patient</th><th>Group</th><th>Component</th><th>Need</th><th>Done</th><th>Urgency</th><th>Deadline</th><th>Bank</th><th>Status</th></tr></thead>
+          <tbody>
+            <tr style="background:#fff5f5">
+              <td style="font-family:'IBM Plex Mono',monospace;font-size:11px">R001</td>
+              <td>Apollo Hospital, Delhi</td><td>Rajan Gupta, 45M</td>
+              <td><span class="bg-pill O_pos">O+</span></td><td>Whole Blood</td>
+              <td>4</td><td>2</td>
+              <td><span class="tag tag-critical">Critical</span></td>
+              <td style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--critical)">~2h</td>
+              <td>AIIMS Delhi</td><td><span class="tag tag-warn">Partial</span></td>
+            </tr>
+            <tr style="background:#fff5f5">
+              <td style="font-family:'IBM Plex Mono',monospace;font-size:11px">R002</td>
+              <td>Fortis Hospital, Mumbai</td><td>Meera Kulkarni, 28F</td>
+              <td><span class="bg-pill A_pos">A+</span></td><td>Whole Blood</td>
+              <td>2</td><td>0</td>
+              <td><span class="tag tag-urgent">Urgent</span></td>
+              <td style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--warn)">~4h</td>
+              <td>—</td><td><span class="tag tag-blood">Open</span></td>
+            </tr>
+            <tr style="background:#fff5f5">
+              <td style="font-family:'IBM Plex Mono',monospace;font-size:11px">R003</td>
+              <td>All India Medical, Delhi</td><td>Unknown (Road accident)</td>
+              <td><span class="bg-pill O_neg">O−</span></td><td>Whole Blood</td>
+              <td>6</td><td>0</td>
+              <td><span class="tag tag-critical">Critical</span></td>
+              <td style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--critical)">~1h</td>
+              <td>—</td><td><span class="tag tag-blood">Open</span></td>
+            </tr>
+            <tr>
+              <td style="font-family:'IBM Plex Mono',monospace;font-size:11px">R004</td>
+              <td>Manipal Bengaluru</td><td>Suresh Babu, 62M</td>
+              <td><span class="bg-pill B_pos">B+</span></td><td>Whole Blood</td>
+              <td>3</td><td>3</td>
+              <td><span class="tag tag-dim">Normal</span></td>
+              <td style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted)">—</td>
+              <td>NIMHANS</td><td><span class="tag tag-ok">Fulfilled</span></td>
+            </tr>
+            <tr>
+              <td style="font-family:'IBM Plex Mono',monospace;font-size:11px">R005</td>
+              <td>Govt. Hyderabad</td><td>Fatima Sheikh, 35F</td>
+              <td><span class="bg-pill AB_pos">AB+</span></td><td>Platelets</td>
+              <td>2</td><td>0</td>
+              <td><span class="tag tag-urgent">Urgent</span></td>
+              <td style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--warn)">~6h</td>
+              <td>—</td><td><span class="tag tag-blood">Open</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card">
+      <div class="ch"><span class="ct">SQL: Fulfill Request (Atomic)</span></div>
+      <div class="cb" style="padding-top:14px">
+        <pre>-- Atomic fulfillment: locks tier row, issues FIFO units, updates request
+SELECT fulfill_request(
+    3,    -- request_id (O- road accident)
+    1,    -- bank_id    (AIIMS Delhi)
+    6     -- units to dispatch
+);
+
+-- Find blood across entire network first
+SELECT * FROM find_blood('O-', 'Whole Blood', 6, 'Delhi');
+
+-- FIFO expiry-first dispatch (inside function):
+-- UPDATE blood_units SET status = 'Issued'
+-- WHERE unit_id IN (
+--   SELECT unit_id FROM blood_units
+--   WHERE blood_group='O-' AND status='Available'
+--   ORDER BY expiry_date ASC LIMIT 6
+-- );</pre>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════ INVENTORY ══════════════════ -->
+<div id="inventory" class="page">
+  <div class="topbar">
+    <div><div class="page-title">Network Inventory</div><div class="page-sub">Live blood stock across all decentralized nodes</div></div>
+  </div>
+  <div class="content">
+    <div class="card" style="margin-bottom:16px">
+      <div class="ch"><span class="ct">Stock by Bank & Blood Group</span><span class="tag tag-dim" style="font-family:'IBM Plex Mono',monospace">vw_network_inventory</span></div>
+      <div class="tw">
+        <table>
+          <thead><tr><th>Bank</th><th>City</th><th>Group</th><th>Available</th><th>Reserved</th><th>Net</th><th>Critical Level</th><th>Status</th><th>Last Sync</th></tr></thead>
+          <tbody>
+            <tr><td>AIIMS Blood Bank</td><td>New Delhi</td><td><span class="bg-pill O_pos">O+</span></td><td>45</td><td>2</td><td><strong>43</strong></td><td>10</td><td><span class="tag tag-ok">OK</span></td><td style="font-family:'IBM Plex Mono',monospace;font-size:11px">Today</td></tr>
+            <tr><td>AIIMS Blood Bank</td><td>New Delhi</td><td><span class="bg-pill O_neg">O−</span></td><td>12</td><td>1</td><td><strong>11</strong></td><td>5</td><td><span class="tag tag-ok">OK</span></td><td style="font-family:'IBM Plex Mono',monospace;font-size:11px">Today</td></tr>
+            <tr><td>AIIMS Blood Bank</td><td>New Delhi</td><td><span class="bg-pill B_neg">B−</span></td><td>4</td><td>0</td><td><strong>4</strong></td><td>4</td><td><span class="tag tag-critical">CRITICAL</span></td><td style="font-family:'IBM Plex Mono',monospace;font-size:11px">Today</td></tr>
+            <tr><td>KEM Hospital</td><td>Mumbai</td><td><span class="bg-pill O_pos">O+</span></td><td>38</td><td>3</td><td><strong>35</strong></td><td>10</td><td><span class="tag tag-ok">OK</span></td><td style="font-family:'IBM Plex Mono',monospace;font-size:11px">Today</td></tr>
+            <tr><td>KEM Hospital</td><td>Mumbai</td><td><span class="bg-pill O_neg">O−</span></td><td>6</td><td>2</td><td><strong>4</strong></td><td>5</td><td><span class="tag tag-critical">CRITICAL</span></td><td style="font-family:'IBM Plex Mono',monospace;font-size:11px">Today</td></tr>
+            <tr><td>KEM Hospital</td><td>Mumbai</td><td><span class="bg-pill AB_neg">AB−</span></td><td>2</td><td>0</td><td><strong>2</strong></td><td>2</td><td><span class="tag tag-critical">CRITICAL</span></td><td style="font-family:'IBM Plex Mono',monospace;font-size:11px">Today</td></tr>
+            <tr><td>NIMHANS</td><td>Bengaluru</td><td><span class="bg-pill O_pos">O+</span></td><td>22</td><td>0</td><td><strong>22</strong></td><td>10</td><td><span class="tag tag-ok">OK</span></td><td style="font-family:'IBM Plex Mono',monospace;font-size:11px">Today</td></tr>
+            <tr><td>NIMHANS</td><td>Bengaluru</td><td><span class="bg-pill O_neg">O−</span></td><td>3</td><td>0</td><td><strong>3</strong></td><td>5</td><td><span class="tag tag-critical">CRITICAL</span></td><td style="font-family:'IBM Plex Mono',monospace;font-size:11px">Today</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="g2">
+      <div class="card">
+        <div class="ch"><span class="ct">⏳ Expiring Within 7 Days</span><span class="tag tag-warn">View: vw_expiring_soon</span></div>
+        <div class="tw">
+          <table>
+            <thead><tr><th>Unit Code</th><th>Group</th><th>Component</th><th>Bank</th><th>Expires</th><th>Days Left</th></tr></thead>
+            <tbody>
+              <tr><td style="font-family:'IBM Plex Mono',monospace;font-size:11px">BU-20260210-000002</td><td><span class="bg-pill A_pos">A+</span></td><td>Whole Blood</td><td>KEM Mumbai</td><td style="font-family:'IBM Plex Mono',monospace;font-size:11px">Mar 17</td><td><span class="tag tag-warn">9d</span></td></tr>
+              <tr><td style="font-family:'IBM Plex Mono',monospace;font-size:11px">BU-20260305-000005</td><td><span class="bg-pill A_neg">A−</span></td><td>Whole Blood</td><td>KEM Mumbai</td><td style="font-family:'IBM Plex Mono',monospace;font-size:11px">Apr 09</td><td><span class="tag tag-ok">1d</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card">
+        <div class="ch"><span class="ct">🔍 SQL: Find Blood Across Network</span></div>
+        <div class="cb" style="padding-top:14px">
+          <pre style="font-size:11.5px">-- Search entire network
+SELECT * FROM find_blood(
+    'O-',          -- blood group
+    'Whole Blood', -- component
+    2,             -- units needed
+    'Delhi'        -- optional city filter
+);
+
+-- Critical stock alerts
+SELECT bank_name, city, blood_group, net_available
+FROM vw_network_inventory
+WHERE stock_status = 'CRITICAL'
+ORDER BY net_available ASC;
+
+-- Expire stale units (maintenance)
+SELECT expire_blood_units();</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════ DONORS ══════════════════ -->
+<div id="donors" class="page">
+  <div class="topbar">
+    <div><div class="page-title">Donor Registry</div><div class="page-sub">Eligible donors across the network</div></div>
+    <div class="topbar-r"><button class="btn btn-blood">＋ Register Donor</button></div>
+  </div>
+  <div class="content">
+    <div class="card" style="margin-bottom:16px">
+      <div class="ch"><span class="ct">All Donors</span></div>
+      <div class="tw">
+        <table>
+          <thead><tr><th>ID</th><th>Name</th><th>DOB / Age</th><th>Gender</th><th>Group</th><th>Phone</th><th>City</th><th>Donations</th><th>Last Donated</th><th>Next Eligible</th><th>Status</th></tr></thead>
+          <tbody>
+            <tr><td>D001</td><td><strong>Arjun Sharma</strong></td><td>Mar 15, 1992 / 33</td><td>M</td><td><span class="bg-pill O_pos">O+</span></td><td>9877000007</td><td>New Delhi</td><td><strong>8</strong></td><td style="font-family:'IBM Plex Mono',monospace;font-size:11px">Dec 15, 2025</td><td style="font-family:'IBM Plex Mono',monospace;font-size:11px">Mar 15, 2026</td><td><span class="tag tag-ok">✓ Eligible</span></td></tr>
+            <tr><td>D002</td><td><strong>Priya Desai</strong></td><td>Jul 22, 1995 / 30</td><td>F</td><td><span class="bg-pill A_pos">A+</span></td><td>9888000008</td><td>Mumbai</td><td><strong>3</strong></td><td style="font-family:'IBM Plex Mono',monospace;font-size:11px">Jan 10, 2026</td><td style="font-family:'IBM Plex Mono',monospace;font-size:11px">Apr 10, 2026</td><td><span class="tag tag-ok">✓ Eligible</span></td></tr>
+            <tr><td>D003</td><td><strong>Rohit Patel</strong></td><td>Nov 8, 1988 / 37</td><td>M</td><td><span class="bg-pill B_pos">B+</span></td><td>9899000009</td><td>Bengaluru</td><td><strong>12</strong></td><td style="font-family:'IBM Plex Mono',monospace;font-size:11px">Nov 20, 2025</td><td style="font-family:'IBM Plex Mono',monospace;font-size:11px">Feb 20, 2026</td><td><span class="tag tag-ok">✓ Eligible</span></td></tr>
+            <tr><td>D004</td><td><strong>Sneha Rao</strong></td><td>May 30, 1990 / 35</td><td>F</td><td><span class="bg-pill AB_pos">AB+</span></td><td>9877100010</td><td>Hyderabad</td><td><strong>2</strong></td><td style="font-family:'IBM Plex Mono',monospace;font-size:11px">Mar 1, 2026</td><td style="font-family:'IBM Plex Mono',monospace;font-size:11px">Jun 1, 2026</td><td><span class="tag tag-dim">⏸ Cooling Off</span></td></tr>
+            <tr><td>D005</td><td><strong>Vikram Singh</strong></td><td>Sep 14, 1985 / 40</td><td>M</td><td><span class="bg-pill O_neg">O−</span></td><td>9877200011</td><td>New Delhi</td><td><strong>20</strong></td><td style="font-family:'IBM Plex Mono',monospace;font-size:11px">Oct 10, 2025</td><td style="font-family:'IBM Plex Mono',monospace;font-size:11px">Jan 10, 2026</td><td><span class="tag tag-ok">✓ Eligible</span></td></tr>
+            <tr><td>D006</td><td><strong>Kavita Nair</strong></td><td>Feb 18, 1993 / 32</td><td>F</td><td><span class="bg-pill A_neg">A−</span></td><td>9877300012</td><td>Mumbai</td><td><strong>5</strong></td><td style="font-family:'IBM Plex Mono',monospace;font-size:11px">Feb 1, 2026</td><td style="font-family:'IBM Plex Mono',monospace;font-size:11px">May 1, 2026</td><td><span class="tag tag-ok">✓ Eligible</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card">
+      <div class="ch"><span class="ct">SQL: Donor Queries</span></div>
+      <div class="cb" style="padding-top:14px">
+        <pre>-- Find eligible O- donors in Delhi (critical group, needed now)
+SELECT donor_id, full_name, blood_group, phone, city
+FROM vw_eligible_donors
+WHERE blood_group = 'O-' AND city = 'New Delhi'
+ORDER BY total_donations DESC;
+
+-- Register a new donation
+SELECT register_donation(
+    5,             -- donor_id (Vikram Singh — O-)
+    1,             -- bank_id  (AIIMS Delhi)
+    'O-',          -- blood_group
+    1.0,           -- units
+    'Whole Blood'
+);
+-- Automatically:
+-- • Creates blood_unit record with barcode
+-- • Sets expiry_date = today + 35 days
+-- • Upserts blood_inventory aggregate
+-- • Sets donor.is_eligible = FALSE, next_eligible = today + 90</pre>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════ DONATIONS ══════════════════ -->
+<div id="donations" class="page">
+  <div class="topbar">
+    <div><div class="page-title">Donation Records</div><div class="page-sub">Individual donation collection and testing log</div></div>
+  </div>
+  <div class="content">
+    <div class="card">
+      <div class="ch"><span class="ct">Donation History</span></div>
+      <div class="tw">
+        <table>
+          <thead><tr><th>ID</th><th>Donor</th><th>Bank</th><th>Date</th><th>Group</th><th>Type</th><th>Units</th><th>Hb</th><th>Status</th></tr></thead>
+          <tbody>
+            <tr><td>DON001</td><td>Arjun Sharma</td><td>AIIMS Delhi</td><td>Jan 15, 2026</td><td><span class="bg-pill O_pos">O+</span></td><td>Whole Blood</td><td>1.0</td><td>13.5</td><td><span class="tag tag-ok">Approved</span></td></tr>
+            <tr><td>DON002</td><td>Priya Desai</td><td>KEM Mumbai</td><td>Feb 10, 2026</td><td><span class="bg-pill A_pos">A+</span></td><td>Whole Blood</td><td>1.0</td><td>12.8</td><td><span class="tag tag-ok">Approved</span></td></tr>
+            <tr><td>DON003</td><td>Rohit Patel</td><td>NIMHANS Bengaluru</td><td>Jan 28, 2026</td><td><span class="bg-pill B_pos">B+</span></td><td>Platelets</td><td>1.0</td><td>14.2</td><td><span class="tag tag-ok">Approved</span></td></tr>
+            <tr><td>DON004</td><td>Vikram Singh</td><td>AIIMS Delhi</td><td>Mar 1, 2026</td><td><span class="bg-pill O_neg">O−</span></td><td>Whole Blood</td><td>1.0</td><td>15.0</td><td><span class="tag tag-ok">Approved</span></td></tr>
+            <tr><td>DON005</td><td>Kavita Nair</td><td>KEM Mumbai</td><td>Mar 5, 2026</td><td><span class="bg-pill A_neg">A−</span></td><td>Whole Blood</td><td>1.0</td><td>12.5</td><td><span class="tag tag-ok">Approved</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════ TRANSFERS ══════════════════ -->
+<div id="transfers" class="page">
+  <div class="topbar">
+    <div><div class="page-title">Inter-Bank Transfers</div><div class="page-sub">Blood unit routing across the decentralized network</div></div>
+  </div>
+  <div class="content">
+    <div class="card" style="margin-bottom:16px">
+      <div class="ch"><span class="ct">Transfer Log</span></div>
+      <div class="tw">
+        <table>
+          <thead><tr><th>Transfer ID</th><th>Unit Code</th><th>Group</th><th>From Bank</th><th>To Bank</th><th>Reason</th><th>Date</th><th>Status</th></tr></thead>
+          <tbody>
+            <tr>
+              <td style="font-family:'IBM Plex Mono',monospace;font-size:11px">TRF-001</td>
+              <td style="font-family:'IBM Plex Mono',monospace;font-size:11px">BU-20260301-000004</td>
+              <td><span class="bg-pill O_neg">O−</span></td>
+              <td>AIIMS Delhi</td>
+              <td>KEM Mumbai</td>
+              <td>Emergency supply for KEM</td>
+              <td style="font-family:'IBM Plex Mono',monospace;font-size:11px">Apr 8</td>
+              <td><span class="tag tag-ok">Received</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card">
+      <div class="ch"><span class="ct">SQL: Execute Transfer</span></div>
+      <div class="cb" style="padding-top:14px">
+        <pre>-- Transfer a specific blood unit between banks
+SELECT transfer_blood(
+    4,                                         -- unit_id
+    1,                                         -- from_bank_id (AIIMS)
+    2,                                         -- to_bank_id   (KEM Mumbai)
+    2,                                         -- transferred_by (coordinator user_id)
+    'Emergency supply for NH-8 accident'       -- reason
+);
+-- Updates:
+-- blood_units.location_bank → to_bank
+-- blood_inventory deducted from source, added to dest
+-- transfer_logs entry created</pre>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════ ER SCHEMA ══════════════════ -->
+<div id="schema" class="page">
+  <div class="topbar">
+    <div><div class="page-title">ER Schema</div><div class="page-sub">Entity-Relationship diagram — 13 tables</div></div>
+  </div>
+  <div class="content">
+    <div class="card">
+      <div class="ch"><span class="ct">Database Tables</span><span style="font-size:12px;color:var(--muted)">13 tables · PostgreSQL 14+</span></div>
+      <div class="schema-g">
+        <div class="sbox red"><div class="sbox-title">USERS</div><div class="sbox-fields">🔑 user_id (PK)<br>username, full_name, email<br>role: super_admin / coordinator / bank_admin / hospital_staff / donor</div></div>
+        <div class="sbox blue"><div class="sbox-title">BLOOD_BANKS</div><div class="sbox-fields">🔑 bank_id (PK)<br>🔗 admin_user_id → users<br>bank_name, city, state<br>latitude, longitude, capacity<br>is_active, is_24h, last_sync</div></div>
+        <div class="sbox blue"><div class="sbox-title">HOSPITALS</div><div class="sbox-fields">🔑 hospital_id (PK)<br>🔗 linked_bank_id → blood_banks<br>hospital_name, city, type<br>latitude, longitude<br>emergency_contact</div></div>
+        <div class="sbox red"><div class="sbox-title">DONORS</div><div class="sbox-fields">🔑 donor_id (PK)<br>🔗 user_id, preferred_bank<br>blood_group, last_donation<br>next_eligible (= +90 days)<br>is_eligible, total_donations</div></div>
+        <div class="sbox warn"><div class="sbox-title">DONATIONS</div><div class="sbox-fields">🔑 donation_id (PK)<br>🔗 donor_id, bank_id<br>blood_group, units_donated<br>donation_type, status<br>hemoglobin_level, collected_at</div></div>
+        <div class="sbox warn"><div class="sbox-title">BLOOD_UNITS</div><div class="sbox-fields">🔑 unit_id (PK)<br>🔗 donation_id, bank_id<br>unit_code (barcode, UNIQUE)<br>blood_group, component<br>expiry_date, status<br>location_bank (current)</div></div>
+        <div class="sbox ok"><div class="sbox-title">BLOOD_INVENTORY</div><div class="sbox-fields">🔑 inventory_id (PK)<br>🔗 bank_id → blood_banks<br>blood_group, component<br>units_available, units_reserved<br>critical_level, last_updated</div></div>
+        <div class="sbox ok"><div class="sbox-title">BLOOD_REQUESTS</div><div class="sbox-fields">🔑 request_id (PK)<br>🔗 hospital_id, requested_by<br>blood_group, units_needed<br>urgency (Critical/Urgent…)<br>status, assigned_bank<br>needed_by, fulfilled_at</div></div>
+        <div class="sbox red"><div class="sbox-title">EMERGENCY_REQUESTS</div><div class="sbox-fields">🔑 emergency_id (PK)<br>🔗 reported_by, coordinator_id<br>incident_type, severity<br>casualties_est, blood_needed<br>location, latitude, longitude</div></div>
+        <div class="sbox red"><div class="sbox-title">EMERGENCY_RESPONSES</div><div class="sbox-fields">🔑 response_id (PK)<br>🔗 emergency_id, bank_id<br>units_pledged, units_dispatched<br>dispatch_time, eta_minutes<br>status (Pledged/Dispatched…)</div></div>
+        <div class="sbox purple"><div class="sbox-title">TRANSFER_LOGS</div><div class="sbox-fields">🔑 transfer_id (PK)<br>🔗 unit_id, from_bank, to_bank<br>🔗 request_id, emergency_id<br>transferred_by, reason<br>status (In Transit / Received)</div></div>
+        <div class="sbox blue"><div class="sbox-title">COMPATIBILITY_RULES</div><div class="sbox-fields">🔑 rule_id (PK)<br>donor_group, recipient_group<br>is_compatible (BOOLEAN)<br>28 rows covering all ABO + Rh combinations</div></div>
+        <div class="sbox warn"><div class="sbox-title">AUDIT_LOGS</div><div class="sbox-fields">🔑 log_id (PK)<br>🔗 user_id → users<br>action, table_name, record_id<br>old_value, new_value<br>ip_address, logged_at</div></div>
+      </div>
+      <div style="padding:0 20px 18px">
+        <div style="background:var(--soft);border-radius:9px;padding:14px;font-size:12px;color:var(--muted);border:1px solid var(--border);line-height:2">
+          <strong style="color:var(--text)">Key Relationships: </strong>
+          BLOOD_BANKS 1:N DONATIONS &nbsp;|&nbsp; DONATIONS 1:N BLOOD_UNITS &nbsp;|&nbsp;
+          BLOOD_BANKS 1:1 BLOOD_INVENTORY (per group) &nbsp;|&nbsp;
+          DONORS 1:N DONATIONS &nbsp;|&nbsp; HOSPITALS 1:N BLOOD_REQUESTS &nbsp;|&nbsp;
+          EMERGENCY_REQUESTS 1:N EMERGENCY_RESPONSES &nbsp;|&nbsp;
+          BLOOD_UNITS 1:N TRANSFER_LOGS &nbsp;|&nbsp; BLOOD_BANKS N:M via TRANSFER_LOGS
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════ SQL QUERIES ══════════════════ -->
+<div id="queries" class="page">
+  <div class="topbar">
+    <div><div class="page-title">SQL Query Reference</div><div class="page-sub">All key queries for DBMS presentation</div></div>
+  </div>
+  <div class="content">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+      <div class="card"><div class="ch"><span class="ct">🌐 Network Inventory View</span></div><div class="cb" style="padding-top:12px"><pre style="font-size:11.5px">SELECT bank_name, city, blood_group,
+       net_available, stock_status
+FROM vw_network_inventory
+WHERE stock_status = 'CRITICAL'
+ORDER BY net_available ASC;</pre></div></div>
+      <div class="card"><div class="ch"><span class="ct">⚡ Priority Request Queue</span></div><div class="cb" style="padding-top:12px"><pre style="font-size:11.5px">-- Sorted by urgency + deadline
+SELECT * FROM vw_open_requests;
+
+-- Fulfillment rate by urgency
+SELECT urgency, COUNT(*) AS total,
+  ROUND(AVG(units_fulfilled::NUMERIC
+    / units_needed)*100,1) AS avg_pct
+FROM blood_requests
+GROUP BY urgency;</pre></div></div>
+      <div class="card"><div class="ch"><span class="ct">🫀 Eligible Donor Search</span></div><div class="cb" style="padding-top:12px"><pre style="font-size:11.5px">-- O- donors in Delhi right now
+SELECT full_name, phone, total_donations
+FROM vw_eligible_donors
+WHERE blood_group = 'O-'
+  AND city = 'New Delhi'
+ORDER BY total_donations DESC;</pre></div></div>
+      <div class="card"><div class="ch"><span class="ct">🚨 Active Emergency Summary</span></div><div class="cb" style="padding-top:12px"><pre style="font-size:11.5px">SELECT title, severity, city,
+       banks_responded,
+       total_units_pledged,
+       total_units_dispatched
+FROM vw_active_emergencies
+ORDER BY
+  CASE severity WHEN 'Critical' THEN 1
+    WHEN 'High' THEN 2 ELSE 3 END;</pre></div></div>
+      <div class="card"><div class="ch"><span class="ct">🔗 Compatibility Matrix</span></div><div class="cb" style="padding-top:12px"><pre style="font-size:11.5px">-- What can donate to O- recipient?
+SELECT donor_group
+FROM compatibility_rules
+WHERE recipient_group = 'O-'
+  AND is_compatible = TRUE;
+
+-- Full matrix summary
+SELECT donor_group,
+  STRING_AGG(recipient_group, ', ')
+    FILTER (WHERE is_compatible)
+    AS can_donate_to
+FROM compatibility_rules
+GROUP BY donor_group;</pre></div></div>
+      <div class="card"><div class="ch"><span class="ct">📊 Bank Performance Report</span></div><div class="cb" style="padding-top:12px"><pre style="font-size:11.5px">SELECT bb.bank_name, bb.city,
+  COUNT(DISTINCT d.donation_id)
+    AS donations,
+  COUNT(DISTINCT r.request_id)
+    AS requests_handled,
+  COUNT(DISTINCT er.response_id)
+    AS emergency_responses,
+  SUM(bi.units_available) AS stock
+FROM blood_banks bb
+LEFT JOIN donations d ON bb.bank_id=d.bank_id
+LEFT JOIN blood_requests r
+       ON bb.bank_id=r.assigned_bank
+LEFT JOIN emergency_responses er
+       ON bb.bank_id=er.bank_id
+LEFT JOIN blood_inventory bi
+       ON bb.bank_id=bi.bank_id
+GROUP BY bb.bank_id, bb.bank_name, bb.city
+ORDER BY emergency_responses DESC;</pre></div></div>
+    </div>
+  </div>
+</div>
+
+</main>
+
+<script>
+function nav(el, id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  el.classList.add('active');
+}
+</script>
+</body>
+</html>
